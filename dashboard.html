@@ -201,17 +201,34 @@ function toggleChart(id){
     if (!isOpen) target.style.display = "block";
 }
 
-// ===== DATA LOGIC (NO FILTERING) =====
 const CHANNEL = "3218142";
 const KEY = "CD3R84AROYXS7HND";
+const STORAGE_KEY = "weather_history";
 
 async function loadData(){
     const res = await fetch(
         `https://api.thingspeak.com/channels/${CHANNEL}/feeds.json?api_key=${KEY}&results=100`
     );
     const data = await res.json();
-    const feeds = data.feeds;
+    const newFeeds = data.feeds;
 
+    // Load existing stored data
+    let history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    // Merge without duplicates
+    newFeeds.forEach(nf => {
+        if (!history.some(h => h.created_at === nf.created_at)) {
+            history.push(nf);
+        }
+    });
+
+    // Save back to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+
+    renderTable(history);
+}
+
+function renderTable(feeds){
     const map = {
         "Temperature (°C)": "field1",
         "Humidity (%)": "field2",
